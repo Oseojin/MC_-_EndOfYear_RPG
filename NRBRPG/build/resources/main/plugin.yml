@@ -1,0 +1,18 @@
+name: NRBRPG
+version: '1.0'
+main: org.osj.nRBRPG.NRBRPG
+api-version: '1.21'
+
+commands:
+  forgive:
+    description: 포기
+  dungeongen:
+    description: 던전 생성
+  addallow:
+    aliases: 권한추가
+    description: 땅에 해당 플레이어를 허가합니다.
+  removeallow:
+    aliases: 권한제거
+    description: 땅에 해당 플레이어 허가를 제거합니다.
+  lore:
+    description: 로어 붙이기
