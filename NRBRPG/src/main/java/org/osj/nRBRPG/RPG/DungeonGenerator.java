@@ -1,12 +1,14 @@
 package org.osj.nRBRPG.RPG;
 
 import dev.lone.itemsadder.api.CustomBlock;
+import io.lumine.mythic.core.mobs.ActiveMob;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
+import org.bukkit.block.Conduit;
 import org.osj.nRBRPG.MANAGER.WorldManager;
 
 import java.util.Random;
@@ -19,7 +21,7 @@ public class DungeonGenerator
         MONSTER,
         BOSS
     }
-    public static Dungeon NewDungeon(int dungeonNum, Location originLoc, int dungeonLv)
+    public static Dungeon NewDungeon(int dungeonNum, ActiveMob gate, int dungeonLv)
     {
         Random random = new Random();
         Dungeon.CONCEPT concept = Dungeon.CONCEPT.values()[random.nextInt(0, Dungeon.CONCEPT.values().length)];
@@ -27,7 +29,7 @@ public class DungeonGenerator
 
         StartGenerate(concept, dungeonNum, dungeonSize);
 
-        Dungeon newDungeon = new Dungeon(concept, dungeonNum, dungeonSize, dungeonLv, originLoc);
+        Dungeon newDungeon = new Dungeon(concept, dungeonNum, dungeonSize, dungeonLv, gate);
 
         return newDungeon;
     }
@@ -64,41 +66,34 @@ public class DungeonGenerator
     private static void CopyRoom(Location buildStartLoc, Location copyStartLoc, Dungeon.CONCEPT concept)
     {
         boolean isNether = concept.equals(Dungeon.CONCEPT.NETHER_NORMAL) || concept.equals(Dungeon.CONCEPT.NETHER_FOREST) || concept.equals(Dungeon.CONCEPT.NETHER_FORTRESS);
-        for(int x = 0; x < 32; x++)
+        for(int y = 0; y < 16; y++)
         {
-            for(int y = 0; y < 16; y++)
+            for(int x = 0; x < 32; x++)
             {
                 for(int z = 0; z < 32; z++)
                 {
                     Location copyLoc = new Location(copyStartLoc.getWorld(), copyStartLoc.getX() + x, copyStartLoc.getY() + y, copyStartLoc.getZ() + z);
                     Location buildLoc = new Location(buildStartLoc.getWorld(), buildStartLoc.getX() + x, buildStartLoc.getY() + y, buildStartLoc.getZ() + z);
                     Block copyBlock = copyLoc.getBlock();
-                    if(copyBlock.getType().equals(Material.BEDROCK))
+                    if(copyBlock.getType().equals(Material.AIR) || copyBlock.getType().equals(Material.LIGHT) || copyBlock.getType().equals(Material.WATER))
                     {
-                        CustomBlock.place("nrb:door_block", buildLoc);
+                        CustomBlock customBlock = CustomBlock.byAlreadyPlaced(buildLoc.getBlock());
+                        if(customBlock != null && (customBlock.getPermission().equals("nrb.door_block")
+                                || customBlock.getPermission().equals("nrb.monster_active_block")
+                                || customBlock.getPermission().equals("nrb.boss_active_block")
+                                || customBlock.getPermission().equals("nrb.chest_block")))
+                        {
+                            customBlock.remove();
+                        }
+                    }
+                    buildLoc.getBlock().setBlockData(copyBlock.getBlockData());
+                    if(isNether)
+                    {
+                        buildLoc.getWorld().setBiome(buildLoc, Biome.NETHER_WASTES);
                     }
                     else
                     {
-                        if(copyBlock.getType().equals(Material.AIR))
-                        {
-                            CustomBlock customBlock = CustomBlock.byAlreadyPlaced(buildLoc.getBlock());
-                            if(customBlock != null && (customBlock.getPermission().equals("nrb.door_block")
-                                    || customBlock.getPermission().equals("nrb.monster_active_block")
-                                    || customBlock.getPermission().equals("nrb.boss_active_block")
-                                    || customBlock.getPermission().equals("nrb.chest_block")))
-                            {
-                                customBlock.remove();
-                            }
-                        }
-                        buildLoc.getBlock().setType(copyBlock.getType());
-                        if(isNether)
-                        {
-                            buildLoc.getWorld().setBiome(buildLoc, Biome.NETHER_WASTES);
-                        }
-                        else
-                        {
-                            buildLoc.getWorld().setBiome(buildLoc, Biome.PLAINS);
-                        }
+                        buildLoc.getWorld().setBiome(buildLoc, Biome.PLAINS);
                     }
                 }
             }

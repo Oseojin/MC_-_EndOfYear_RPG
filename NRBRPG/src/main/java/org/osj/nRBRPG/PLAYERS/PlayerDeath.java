@@ -47,7 +47,8 @@ public class PlayerDeath implements Listener
             Component reviveProgressComponent = Component.text(progress + "/100").color(TextColor.color(0,255,0));
             player.sendActionBar(reviveProgressComponent);
             deathPlayer.sendActionBar(reviveProgressComponent);
-            player.getWorld().playSound(Sound.sound().type(org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_BREAK).build());
+            deathPlayer.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_BREAK, 1f, 1f);
+            player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_BREAK, 1f, 1f);
 
             if(progress >= 100)
             {
@@ -55,7 +56,8 @@ public class PlayerDeath implements Listener
                 double deathPlayerMaxHealth = deathPlayer.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue();
                 deathPlayer.setHealth(deathPlayerMaxHealth / 10.0);
                 deathPlayerReviveMap.remove(deathPlayer.getUniqueId());
-                player.getWorld().playSound(Sound.sound().type(org.bukkit.Sound.ENTITY_FIREWORK_ROCKET_BLAST).build());
+                deathPlayer.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1f, 1f);
+                player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1f, 1f);
                 return;
             }
             deathPlayerReviveMap.put(deathPlayer.getUniqueId(), progress);

@@ -4,6 +4,7 @@ import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -23,7 +24,7 @@ public class ChunkManager implements Listener
     public static HashMap<Player, Chunk> currentPlayerChunk = new HashMap<>();
     FileConfiguration chunkConfig = NRBRPG.getConfigManager().getConfig("chunkownership");
     private final HashMap<UUID, List<Long>> chunkMasterDataMap = new HashMap<>();
-    private final HashMap<UUID, List<String>> chunkAllowedDataMap = new HashMap<>();
+    public static HashMap<UUID, List<String>> chunkAllowedDataMap = new HashMap<>();
     private static int defaultY = 151;
 
     public ChunkManager()
@@ -69,10 +70,29 @@ public class ChunkManager implements Listener
                 currentPlayerChunk.put(player, chunk);
                 return;
             }
+
             Player masterPlayer = NRBRPG.getServerInstance().getServer().getPlayer(whosChunk(chunk.getChunkKey()));
-            MessageManager.SendTitle(player, masterPlayer.getName(), TextColor.color(0, 255, 0), "의 땅", TextColor.color(255, 255 ,255));
+            if(masterPlayer == null)
+            {
+                OfflinePlayer masterOfflinePlayer = NRBRPG.getServerInstance().getServer().getOfflinePlayer(whosChunk(chunk.getChunkKey()));
+                MessageManager.SendTitle(player, masterOfflinePlayer.getName(), TextColor.color(0, 255, 0), "의 땅", TextColor.color(255, 255 ,255));
+            }
+            else
+            {
+                MessageManager.SendTitle(player, masterPlayer.getName(), TextColor.color(0, 255, 0), "의 땅", TextColor.color(255, 255 ,255));
+            }
+
         }
         currentPlayerChunk.put(player, chunk);
+    }
+
+    public Chunk getMyChunk(UUID uuid)
+    {
+        if(!chunkMasterDataMap.containsKey(uuid))
+        {
+            return null;
+        }
+        return Bukkit.getWorld(WorldManager.lobbyWorld).getChunkAt(chunkMasterDataMap.get(uuid).get(0));
     }
 
     public void addMyChunk(UUID uuid, Chunk chunk)
@@ -89,15 +109,6 @@ public class ChunkManager implements Listener
             else
             {
                 chunkMasterDataMap.get(uuid).add(chunk.getChunkKey());
-            }
-
-            for(int i = 0; i < 16; i++)
-            {
-                for(int j = 0; j < 16; j++)
-                {
-                    if(i == 0 || i == 15 || j == 0 || j == 15)
-                        chunk.getBlock(i, 0, j).setType(Material.OBSIDIAN);
-                }
             }
 
             chunkConfig.set("chunks.master." + uuid, chunkMasterDataMap.get(uuid));
@@ -160,6 +171,10 @@ public class ChunkManager implements Listener
 
     public boolean isMyFriendChunk(UUID friendUUID, UUID masterUUID)
     {
+        if(masterUUID == null)
+        {
+            return false;
+        }
         return chunkAllowedDataMap.containsKey(friendUUID) && chunkAllowedDataMap.get(friendUUID).contains(masterUUID.toString());
     }
 
@@ -194,7 +209,7 @@ public class ChunkManager implements Listener
             {
                 return true;
             }
-            else if(isMyFriendChunk(whosChunk(chunk.getChunkKey()), uuid))
+            else if(isMyFriendChunk(uuid, whosChunk(chunk.getChunkKey())))
             {
                 return true;
             }

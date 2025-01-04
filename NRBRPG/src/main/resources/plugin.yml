@@ -6,8 +6,8 @@ api-version: '1.21'
 commands:
   forgive:
     description: 포기
-  dungeongen:
-    description: 던전 생성
+  test:
+    description: 테스트 명령어
   addallow:
     aliases: 권한추가
     description: 땅에 해당 플레이어를 허가합니다.
@@ -16,3 +16,26 @@ commands:
     description: 땅에 해당 플레이어 허가를 제거합니다.
   lore:
     description: 로어 붙이기
+  lobby:
+    aliases: 로비
+    description: 로비로 귀환한다.
+  gateonoff:
+    description: 게이트 생성 끄기/켜기.
+  tpland:
+    description: 내 땅으로 이동
+  addpoint:
+    description: 포인트 추가
+  gatenum:
+    description: 현재 게이트 수
+  shop:
+    aliases: 상점
+    description: 상점
+  an:
+    description: 공지
+  check:
+    description: 점검
+  ricecake:
+    aliases: 떡
+    description: 크기 변경
+  removechunk:
+    description: 청크 삭제

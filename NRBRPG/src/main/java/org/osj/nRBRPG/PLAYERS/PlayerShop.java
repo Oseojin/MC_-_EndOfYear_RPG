@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.osj.nRBRPG.MANAGER.InventoryManager;
+import org.osj.nRBRPG.MANAGER.SpawnLocationManager;
 
 public class PlayerShop implements Listener
 {
@@ -15,15 +16,15 @@ public class PlayerShop implements Listener
         Player player = event.getPlayer();
         if(event.getActiveMob().getType().getDisplayName().get().contains("자재 상인"))
         {
-            if(event.getActiveMob().getType().getDisplayName().get().contains("_0"))
+            if(event.getActiveMob().getType().getDisplayName().get().contains("_1"))
             {
                 player.openInventory(InventoryManager.makeStructureShop(0));
             }
-            else if(event.getActiveMob().getType().getDisplayName().get().contains("_1"))
+            else if(event.getActiveMob().getType().getDisplayName().get().contains("_2"))
             {
                 player.openInventory(InventoryManager.makeStructureShop(1));
             }
-            else if(event.getActiveMob().getType().getDisplayName().get().contains("_2"))
+            else if(event.getActiveMob().getType().getDisplayName().get().contains("_3"))
             {
                 player.openInventory(InventoryManager.makeStructureShop(2));
             }
@@ -35,6 +36,10 @@ public class PlayerShop implements Listener
         else if(event.getActiveMob().getType().getDisplayName().get().contains("일반 상인"))
         {
             player.openInventory(InventoryManager.makeNormalShop());
+        }
+        else if(event.getActiveMob().getType().getDisplayName().get().contains("야생 이동"))
+        {
+            player.teleport(SpawnLocationManager.wildSpawnLoc);
         }
     }
 }

@@ -16,8 +16,8 @@ public class ForgiveCommand implements CommandExecutor
 
         if(PlayerDeath.deathPlayerReviveMap.containsKey(player.getUniqueId()))
         {
-            PlayerDeath.KillPlayer(player);
             player.teleport(SpawnLocationManager.lobbySpawnLoc);
+            PlayerDeath.KillPlayer(player);
         }
         return false;
     }

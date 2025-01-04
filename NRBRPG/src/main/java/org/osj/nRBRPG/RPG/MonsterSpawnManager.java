@@ -12,10 +12,13 @@ import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.osj.nRBRPG.ITEMSADDER.CustomItemManager;
 import org.osj.nRBRPG.MANAGER.TranslateManager;
 import org.osj.nRBRPG.MANAGER.WorldManager;
+import org.osj.nRBRPG.NRBRPG;
 
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -37,7 +40,7 @@ public class MonsterSpawnManager
                 mobIDList.add("BossElderGuardian");
                 break;
             case DESSERT:
-                mobIDList.add("BossSkeletonHorse");
+                mobIDList.add("BossSkeleton");
                 break;
             case NETHER_NORMAL:
                 mobIDList.add("BossGhast");
@@ -65,18 +68,15 @@ public class MonsterSpawnManager
         ActiveMob boss = mob.spawn(BukkitAdapter.adapt(spawnLoc), lv);
 
         LivingEntity livingEntity = (LivingEntity) boss.getEntity().getBukkitEntity();
-        if(mobIDList.get(randNum).equals("SkeletonHorse"))
+
+        if(lv != 1)
         {
-            LivingEntity horse = (LivingEntity) Bukkit.getWorld(WorldManager.dungeonWorld).spawnEntity(spawnLoc, EntityType.SKELETON_HORSE);
-            horse.addPassenger(livingEntity);
+            List<ItemStack> armorList = CustomItemManager.getArmorOnLv(lv);
+            livingEntity.getEquipment().setHelmet(armorList.get(0));
+            livingEntity.getEquipment().setChestplate(armorList.get(1));
+            livingEntity.getEquipment().setLeggings(armorList.get(2));
+            livingEntity.getEquipment().setBoots(armorList.get(3));
         }
-
-
-        List<ItemStack> armorList = CustomItemManager.getArmorOnLv(lv);
-        livingEntity.getEquipment().setHelmet(armorList.get(0));
-        livingEntity.getEquipment().setChestplate(armorList.get(1));
-        livingEntity.getEquipment().setLeggings(armorList.get(2));
-        livingEntity.getEquipment().setBoots(armorList.get(3));
 
         return boss;
     }
@@ -94,7 +94,6 @@ public class MonsterSpawnManager
             case MINE:
                 entityTypeList.add(EntityType.CREEPER);
                 entityTypeList.add(EntityType.CAVE_SPIDER);
-                entityTypeList.add(EntityType.SILVERFISH);
                 entityTypeList.add(EntityType.SKELETON);
                 break;
             case ABYSS:
@@ -129,7 +128,7 @@ public class MonsterSpawnManager
                 break;
             case WOODLAND_MANSION:
                 entityTypeList.add(EntityType.ILLUSIONER);
-                entityTypeList.add(EntityType.VEX);
+                entityTypeList.add(EntityType.ZOMBIE);
                 entityTypeList.add(EntityType.VINDICATOR);
                 break;
             case FOREST:
@@ -159,7 +158,25 @@ public class MonsterSpawnManager
         {
             ((PigZombie) livingEntity).setAngry(true);
         }
-        else if(entityType.equals(EntityType.ZOMBIE))
+        else if(entityType.equals(EntityType.HOGLIN))
+        {
+            ((Hoglin)livingEntity).setImmuneToZombification(true);
+        }
+        else if(entityType.equals(EntityType.PIGLIN_BRUTE))
+        {
+            ((PiglinBrute)livingEntity).setImmuneToZombification(true);
+        }
+        else if(entityType.equals(EntityType.PIGLIN))
+        {
+            ((Piglin)livingEntity).setImmuneToZombification(true);
+        }
+        else if(entityType.equals(EntityType.SKELETON) && concept.equals(Dungeon.CONCEPT.MINE))
+        {
+            LivingEntity spider = (LivingEntity) Bukkit.getWorld(WorldManager.dungeonWorld).spawnEntity(spawnLoc, EntityType.SPIDER);
+            spider.addPassenger(livingEntity);
+            livingEntityList.add(spider);
+        }
+        else if(entityType.equals(EntityType.ZOMBIE) && concept.equals(Dungeon.CONCEPT.TUNDRA))
         {
             ((Ageable)livingEntity).setBaby();
             LivingEntity chicken = (LivingEntity) Bukkit.getWorld(WorldManager.dungeonWorld).spawnEntity(spawnLoc, EntityType.CHICKEN);
@@ -170,6 +187,10 @@ public class MonsterSpawnManager
         {
             double size = livingEntity.getAttribute(Attribute.GENERIC_SCALE).getBaseValue();
             livingEntity.getAttribute(Attribute.GENERIC_SCALE).setBaseValue(size / 3);
+        }
+        else if(entityType.equals(EntityType.CREEPER))
+        {
+            ((Creeper) livingEntity).setPowered(true);
         }
 
         int randomLv = random.nextInt(lv-1, lv+2);
@@ -192,11 +213,15 @@ public class MonsterSpawnManager
             livingEntity.getEquipment().setBoots(armorList.get(3));
         }
 
-        double maxHealth = livingEntity.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue() * 0.5 * (randomLv + 1);
-        livingEntity.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(maxHealth);
-        livingEntity.setHealth(maxHealth);
-
         Component monsterName = Component.text(TranslateManager.englishToKoreanMap.get(livingEntity.getName().toLowerCase()) + " lv." + randomLv);
+        if(entityType.equals(EntityType.ZOMBIE) && concept.equals(Dungeon.CONCEPT.WOODLAND_MANSION))
+        {
+            monsterName = Component.text("좀비 lv." + randomLv);
+        }
+        if(entityType.equals(EntityType.SKELETON) && concept.equals(Dungeon.CONCEPT.MINE))
+        {
+            monsterName = Component.text("스파이더조키 lv." + randomLv);
+        }
         livingEntity.customName(monsterName);
 
         return livingEntityList;

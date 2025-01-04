@@ -1,6 +1,7 @@
 package org.osj.nRBRPG.RPG;
 
 import dev.lone.itemsadder.api.CustomFurniture;
+import io.lumine.mythic.api.adapters.AbstractLocation;
 import io.lumine.mythic.api.mobs.MythicMob;
 import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.bukkit.MythicBukkit;
@@ -12,7 +13,9 @@ import org.bukkit.Material;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BundleMeta;
@@ -26,6 +29,7 @@ import org.osj.nRBRPG.NRBRPG;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 public class BossDungeon implements Listener
 {
@@ -37,24 +41,66 @@ public class BossDungeon implements Listener
     }
     private List<Player> inPlayerList = new LinkedList<>();
     private Location bossSpawnLoc;
-    private CustomFurniture gate;
+    private ActiveMob gate;
     private Location spawnLoc;
     private Location originLoc;
     private TYPE type;
+    private int maxTryChance = 5;
     private int tryChance = 0;
     private ActiveMob boss;
     private boolean active = false;
-    public void init(TYPE type, int tryChance, CustomFurniture gate)
+    public void init(ActiveMob gate)
     {
-        this.type = type;
-        this.tryChance = tryChance;
         this.gate = gate;
-        this.originLoc = gate.getEntity().getLocation().add(1, 0 ,0);
-        active = true;
-        if(boss != null)
+        Random random = new Random();
+        type = TYPE.values()[random.nextInt(0, TYPE.values().length)];
+        tryChance = maxTryChance;
+        originLoc = gate.getEntity().getBukkitEntity().getLocation().add(1, 0, 1);
+        active = false;
+    }
+    public void reset()
+    {
+        Random random = new Random();
+        double x = 0;
+        double y = 0;
+        double z = 0;
+
+        switch (random.nextInt(0,3))
         {
-            boss.remove();
+            case 0:
+                x = 1142.5;
+                y = 73.5;
+                z = 1556.0;
+                break;
+            case 1:
+                x = -1920.5;
+                y = 63.5;
+                z = -1791.5;
+                break;
+            case 2:
+                x = -848.5;
+                y = 169.5;
+                z = 1082.5;
+                break;
         }
+
+        type = TYPE.values()[random.nextInt(0, TYPE.values().length)];
+        tryChance = maxTryChance;
+        originLoc = gate.getEntity().getBukkitEntity().getLocation().add(1, 0, 1);
+        active = false;
+
+        AbstractLocation newGateLoc = new AbstractLocation(gate.getEntity().getWorld(), x, y, z);
+
+        new BukkitRunnable()
+        {
+            @Override
+            public void run()
+            {
+                gate = MythicBukkit.inst().getMobManager().getActiveMob(gate.getEntity().getBukkitEntity().getUniqueId()).orElse(null);
+                gate.getEntity().teleport(newGateLoc);
+                Bukkit.getConsoleSender().sendMessage("보스 포탈 이동!");
+            }
+        }.runTaskLater(NRBRPG.getServerInstance(), 20L);
     }
     public void EnterDungeon(Player player)
     {
@@ -73,6 +119,10 @@ public class BossDungeon implements Listener
     }
     public void SpawnBoss()
     {
+        if(boss != null)
+        {
+            boss.remove();
+        }
         MythicMob mob;
         switch (type)
         {
@@ -84,7 +134,7 @@ public class BossDungeon implements Listener
                 boss.getEntity().setModelScale(3);
                 break;
             case WARDEN:
-                spawnLoc = new Location(Bukkit.getWorld(WorldManager.superbossWorld), -519, 62, 0);
+                spawnLoc = new Location(Bukkit.getWorld(WorldManager.superbossWorld), -519, 62, 3);
                 bossSpawnLoc = new Location(Bukkit.getWorld(WorldManager.superbossWorld), -519, 65, 23);
                 mob = MythicBukkit.inst().getMobManager().getMythicMob("WARDEN").orElse(null);
                 boss = mob.spawn(BukkitAdapter.adapt(bossSpawnLoc), 11);
@@ -92,7 +142,7 @@ public class BossDungeon implements Listener
                 break;
             case WITHER:
                 spawnLoc = new Location(Bukkit.getWorld(WorldManager.superbossWorld), 487, 62, 13);
-                bossSpawnLoc = new Location(Bukkit.getWorld(WorldManager.superbossWorld), 487, 65, -7);
+                bossSpawnLoc = new Location(Bukkit.getWorld(WorldManager.superbossWorld), 488, 63, -22);
                 mob = MythicBukkit.inst().getMobManager().getMythicMob("WITHER").orElse(null);
                 boss = mob.spawn(BukkitAdapter.adapt(bossSpawnLoc), 11);
                 boss.getEntity().setModelScale(3);
@@ -102,34 +152,34 @@ public class BossDungeon implements Listener
 
     private void ClearDungeon()
     {
-        active = false;
         for(Player player : inPlayerList)
         {
             MessageManager.SendFixedBossClearTitle(player);
-            ItemStack bundle = new ItemStack(Material.BUNDLE);
-            BundleMeta bundleMeta = (BundleMeta) bundle.getItemMeta();
-            bundleMeta.addItem(CustomItemManager.randomEnchantMax());
-            bundleMeta.addItem(CustomItemManager.randomEnchantMax());
-            bundleMeta.addItem(CustomItemManager.randomEnchantMax());
-            bundleMeta.addItem(CustomItemManager.randomEnchantMax());
-            bundleMeta.addItem(CustomItemManager.randomEnchantMax());
-            bundle.setItemMeta(bundleMeta);
-            player.getInventory().addItem(bundle);
-            PointManager.AddPoint(player, 1000000);
+            List<ItemStack> dropItemList = CustomItemManager.SetBossDrop(type);
+            for(ItemStack drop : dropItemList)
+            {
+                player.getInventory().addItem(drop);
+            }
+            PointManager.AddPoint(player, 500000);
         }
         BukkitScheduler playerReturnScheduler = Bukkit.getScheduler();
         playerReturnScheduler.runTaskLater(NRBRPG.getServerInstance(), () ->
         {
             for(Player player : inPlayerList)
             {
-                player.teleport(originLoc);
+                new BukkitRunnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        player.teleport(originLoc);
+                        inPlayerList.remove(player);
+                    }
+                }.runTaskLater(NRBRPG.getServerInstance(), 2L);
             }
-        }, 20L * 60L);
-        gate.getEntity().getLocation().getBlock().setType(Material.AIR);
-        gate.getEntity().getLocation().add(0, 1, 0).getBlock().setType(Material.AIR);
-        gate.getEntity().getLocation().add(0, 1, 0).getBlock().setType(Material.AIR);
-        gate.remove(false);
-        inPlayerList.clear();
+            reset();
+            Bukkit.getConsoleSender().sendMessage("클리어 리셋");
+        }, 20L * 30L);
     }
 
     @EventHandler
@@ -139,7 +189,20 @@ public class BossDungeon implements Listener
         {
             return;
         }
-        if(event.getMob().equals(boss))
+        if(event.getMob().equals(boss) && type.equals(TYPE.ENDER_DRAGON))
+        {
+            ClearDungeon();
+        }
+    }
+    @EventHandler
+    public void onEntityDeath(EntityDeathEvent event)
+    {
+        if(!event.getEntity().getWorld().getName().equals(WorldManager.superbossWorld))
+        {
+            return;
+        }
+        event.getDrops().clear();
+        if(MythicBukkit.inst().getMobManager().isMythicMob(event.getEntity()) && !type.equals(TYPE.ENDER_DRAGON))
         {
             ClearDungeon();
         }
@@ -166,11 +229,8 @@ public class BossDungeon implements Listener
         }
         if(inPlayerList.isEmpty() && tryChance <= 0)
         {
-            if(boss != null)
-            {
-                boss.remove();
-            }
-            active = false;
+            reset();
+            Bukkit.getConsoleSender().sendMessage("사망 리셋");
         }
     }
 
@@ -186,17 +246,21 @@ public class BossDungeon implements Listener
         {
             return;
         }
+        if(type == null)
+        {
+            return;
+        }
         double value = 0;
         switch (type)
         {
             case ENDER_DRAGON:
-                value = 2;
+                value = 4;
                 break;
             case WARDEN:
-                value = 1;
+                value = 2;
                 break;
             case WITHER:
-                value = 3;
+                value = 6;
                 break;
         }
 

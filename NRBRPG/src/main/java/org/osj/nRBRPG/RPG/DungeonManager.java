@@ -1,100 +1,124 @@
 package org.osj.nRBRPG.RPG;
 
 import dev.lone.itemsadder.api.CustomFurniture;
+import io.lumine.mythic.api.mobs.MythicMob;
 import io.lumine.mythic.bukkit.MythicBukkit;
+import io.lumine.mythic.bukkit.events.MythicMobInteractEvent;
+import io.lumine.mythic.bukkit.events.MythicMobSpawnEvent;
+import io.lumine.mythic.core.mobs.ActiveMob;
+import it.unimi.dsi.fastutil.Hash;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.osj.nRBRPG.MANAGER.WorldManager;
 import org.osj.nRBRPG.NRBRPG;
 import org.osj.nRBRPG.PLAYERS.PlayerDeath;
+import org.osj.nRBRPG.PLAYERS.PlayerJoin;
+import org.osj.nRBRPG.PLAYERS.PlayerScaleCommand;
 
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 
 public class DungeonManager implements Listener
 {
-    private static HashMap<Entity, Dungeon> gateDungeonMap = new HashMap<>();
+    public static HashMap<UUID, Dungeon> gateDungeonMap = new HashMap<>();
+    public boolean generate = false;
+    private int gateNum = 0;
+
 
     @EventHandler
-    public void onInteractPortal(PlayerInteractEvent event)
+    public void onInteractGate(MythicMobInteractEvent event)
     {
         Player player = event.getPlayer();
-        Block block = event.getClickedBlock();
-        if(!WorldManager.wildWorlds.contains(player.getWorld().getName()))
-        {
-            return;
-        }
-        if(!event.hasBlock())
-        {
-            return;
-        }
-        if(block == null)
-        {
-            return;
-        }
+        ActiveMob customGate = event.getActiveMob();
         if(PlayerDeath.deathPlayerReviveMap.containsKey(player.getUniqueId()))
         {
+            event.setCancelled();
             return;
         }
-        CustomFurniture customGate = CustomFurniture.byAlreadySpawned(block);
-        if(customGate == null)
+        if(customGate.getType().getDisplayName().get().contains("게이트 lv."))
         {
-            return;
-        }
-        if(player.getInventory().getItemInMainHand().getType().equals(Material.BEDROCK))
-        {
-            return;
-        }
-        if(customGate.getPermission().equals("nrb.gate"))
-        {
-            if(!gateDungeonMap.containsKey(customGate.getEntity()))
+            if(player.getInventory().getItemInMainHand().isSimilar(new ItemStack(Material.BEDROCK)))
             {
-                int lv = Integer.parseInt(customGate.getNamespacedID().replace("nrb:gate_", ""));
-                gateDungeonMap.put(customGate.getEntity(), DungeonGenerator.NewDungeon(gateDungeonMap.size(), block.getLocation(), lv));
-                BukkitScheduler gateRemoveScheduler = Bukkit.getScheduler();
-                gateRemoveScheduler.runTaskLater(NRBRPG.getServerInstance(), () ->
-                {
-                    customGate.getEntity().getLocation().getBlock().setType(Material.AIR);
-                    customGate.getEntity().getLocation().add(0, 1, 0).getBlock().setType(Material.AIR);
-                    customGate.remove(false);
-                }, 20L * 60L);
-                gateDungeonMap.get(customGate.getEntity()).OpenRoom();
+                customGate.despawn();
+                int currGateNum = NRBRPG.getConfigManager().getConfig("gatenum").getInt("gatenum");
+                NRBRPG.getConfigManager().getConfig("gatenum").set("gatenum", currGateNum - 1);
+                NRBRPG.getConfigManager().saveConfig("gatenum");
+                return;
             }
-            gateDungeonMap.get(customGate.getEntity()).EnterDungeon(player);
+            if(PlayerScaleCommand.playerList.contains(player))
+            {
+                PlayerScaleCommand.playerList.remove(player);
+                player.getAttribute(Attribute.GENERIC_SCALE).setBaseValue(1.0);
+            }
+            if(!gateDungeonMap.containsKey(customGate.getEntity().getBukkitEntity().getUniqueId()))
+            {
+                int lv = ((int)customGate.getLevel());
+                Dungeon newdungeon = DungeonGenerator.NewDungeon(gateDungeonMap.size(), customGate, lv);
+                gateDungeonMap.put(customGate.getEntity().getBukkitEntity().getUniqueId(), newdungeon);
+                gateDungeonMap.get(customGate.getEntity().getBukkitEntity().getUniqueId()).OpenRoom();
+            }
+            gateDungeonMap.get(customGate.getEntity().getBukkitEntity().getUniqueId()).EnterDungeon(player);
+            //playerClickList.remove(player);
         }
-        else if(customGate.getPermission().equals("nrb.boss_gate"))
+        else if(customGate.getType().getDisplayName().get().contains("보스 게이트"))
         {
+            if(player.getInventory().getItemInMainHand().isSimilar(new ItemStack(Material.BEDROCK)))
+            {
+                customGate.despawn();
+                return;
+            }
             BossDungeon bossDungeon = NRBRPG.getBossDungeon();
             if(!bossDungeon.getActive()) // 최초 입장
             {
-                Random random = new Random();
-                BossDungeon.TYPE type = BossDungeon.TYPE.values()[random.nextInt(0, BossDungeon.TYPE.values().length)];
-                bossDungeon.init(type, 5, customGate);
                 // 보스 스폰
                 bossDungeon.SpawnBoss();
             }
-            bossDungeon.EnterDungeon(player);
+            Bukkit.getConsoleSender().sendMessage(bossDungeon.getTryChance() + "");
             if(bossDungeon.getTryChance() <= 0)
             {
-                customGate.getEntity().getLocation().getBlock().setType(Material.AIR);
-                customGate.getEntity().getLocation().add(0, 1, 0).getBlock().setType(Material.AIR);
-                customGate.getEntity().getLocation().add(0, 1, 0).getBlock().setType(Material.AIR);
-                customGate.remove(false);
+                player.sendMessage(Component.text("입장 횟수를 모두 소진했습니다.").color(TextColor.color(255, 0 ,0)));
+                return;
             }
+            bossDungeon.EnterDungeon(player);
+        }
+    }
+
+    @EventHandler
+    public void onSpawnBossGate(MythicMobSpawnEvent event)
+    {
+        if(event.getMob().getType().getDisplayName().get().contains("보스 게이트"))
+        {
+            Bukkit.getConsoleSender().sendMessage("보스 게이트");
+            NRBRPG.getBossDungeon().init(event.getMob());
         }
     }
 
     public void startGateGenerate()
     {
         BukkitScheduler gateScheduler = Bukkit.getScheduler();
-        gateScheduler.runTaskTimer(NRBRPG.getServerInstance(), GateGenerator::generateGate, 20L, 20L * 60L * 5);
+        gateScheduler.runTaskTimer(NRBRPG.getServerInstance(), () ->
+        {
+            if(generate)
+            {
+                GateGenerator.generateGate();
+            }
+        }, 20L, 20L * 60L * 5L);
     }
 }

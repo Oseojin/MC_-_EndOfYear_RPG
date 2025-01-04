@@ -11,6 +11,7 @@ import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class BowDamage implements Listener
@@ -30,6 +31,11 @@ public class BowDamage implements Listener
         }
         List<Component> loreList = bowCustom.getItemStack().lore();
         int damage = Integer.parseInt(((TextComponent)loreList.get(0)).content().replace("원거리 공격력: ", ""));
+
+        if(!(event.getProjectile() instanceof Arrow))
+        {
+            return;
+        }
 
         Arrow arrow = (Arrow) event.getProjectile();
         arrow.setDamage(damage);

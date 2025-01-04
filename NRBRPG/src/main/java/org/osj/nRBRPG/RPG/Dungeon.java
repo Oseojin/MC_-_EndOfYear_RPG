@@ -1,6 +1,8 @@
 package org.osj.nRBRPG.RPG;
 
 import dev.lone.itemsadder.api.CustomBlock;
+import dev.lone.itemsadder.api.CustomStack;
+import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import io.lumine.mythic.core.mobs.ActiveMob;
 import org.bukkit.Bukkit;
@@ -17,6 +19,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.*;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.osj.nRBRPG.ITEMSADDER.CustomItemManager;
@@ -42,8 +46,9 @@ public class Dungeon implements Listener
         WOODLAND_MANSION,
         FOREST
     }
-    private List<Player> inPlayerList = new LinkedList<>();
     private List<LivingEntity> monsterList = new LinkedList<>();
+    private List<Player> inPlayerList = new LinkedList<>();
+    private List<Player> playerChestList = new LinkedList<>();
 
     private CONCEPT concept;
     private int dungeonSize;
@@ -52,16 +57,19 @@ public class Dungeon implements Listener
     private int progress;
     private Location spawnLoc;
     private Location originLoc;
+    private ActiveMob gate;
     private ActiveMob boss;
+    private Block activeBlock;
 
-    public Dungeon(CONCEPT concept, int dungeonNumber, int dungeonSize, int lv, Location originLoc)
+    public Dungeon(CONCEPT concept, int dungeonNumber, int dungeonSize, int lv, ActiveMob gate)
     {
         NRBRPG.getServerInstance().getServer().getPluginManager().registerEvents(this, NRBRPG.getServerInstance());
         this.concept = concept;
         this.dungeonNumber = dungeonNumber;
         this.dungeonSize = dungeonSize;
         this.lv = lv;
-        this.originLoc = originLoc;
+        this.gate = gate;
+        this.originLoc = gate.getEntity().getBukkitEntity().getLocation().add(1, 0 ,1);
 
         spawnLoc = Bukkit.getWorld(WorldManager.dungeonWorld).getChunkAt(0,dungeonNumber * 4).getBlock(3 ,2, 15).getLocation();
 
@@ -70,8 +78,8 @@ public class Dungeon implements Listener
 
     public void EnterDungeon(Player player)
     {
-        inPlayerList.add(player);
         MessageManager.SendEnterDungeonTitle(player, concept, lv);
+        inPlayerList.add(player);
         player.teleport(spawnLoc);
     }
 
@@ -88,7 +96,21 @@ public class Dungeon implements Listener
             {
                 player.teleport(originLoc);
             }
-        }, 20L * 60L);
+            new BukkitRunnable()
+            {
+                @Override
+                public void run()
+                {
+                    if(gate != null)
+                    {
+                        MythicBukkit.inst().getMobManager().getActiveMob(gate.getEntity().getBukkitEntity().getUniqueId()).orElse(gate).despawn();
+                        int currGateNum = NRBRPG.getConfigManager().getConfig("gatenum").getInt("gatenum");
+                        NRBRPG.getConfigManager().getConfig("gatenum").set("gatenum", currGateNum - 1);
+                        NRBRPG.getConfigManager().saveConfig("gatenum");
+                    }
+                }
+            }.runTaskLater(NRBRPG.getServerInstance(), 40L);
+        }, 20L * 30L);
     }
 
     public void OpenRoom()
@@ -107,15 +129,13 @@ public class Dungeon implements Listener
                 Block exitBlock = exitBlockLoc.getBlock();
                 Block enterBlock = enterBlockLoc.getBlock();
 
-                if(exitBlock.getType().equals(Material.NOTE_BLOCK))
+                if(exitBlock.getType().equals(Material.BEDROCK))
                 {
-                    CustomBlock doorBlock = CustomBlock.byAlreadyPlaced(exitBlock);
-                    doorBlock.remove();
+                    exitBlock.setType(Material.AIR);
                 }
-                if(enterBlock.getType().equals(Material.NOTE_BLOCK))
+                if(enterBlock.getType().equals(Material.BEDROCK))
                 {
-                    CustomBlock doorBlock = CustomBlock.byAlreadyPlaced(enterBlock);
-                    doorBlock.remove();
+                    enterBlock.setType(Material.AIR);
                 }
             }
         }
@@ -134,9 +154,9 @@ public class Dungeon implements Listener
             for(int y = 0; y < 16; y++)
             {
                 Location enterBlockLoc = new Location(enterStartLoc.getWorld(), enterStartLoc.getX(), enterStartLoc.getY() + y, enterStartLoc.getZ() + z);
-                if(enterBlockLoc.getBlock().getType().equals(Material.AIR))
+                if(enterBlockLoc.getBlock().getType().equals(Material.AIR) || enterBlockLoc.getBlock().getType().equals(Material.WATER))
                 {
-                    CustomBlock.place("nrb:door_block", enterBlockLoc);
+                    enterBlockLoc.getWorld().setType(enterBlockLoc, Material.BEDROCK);
                 }
             }
         }
@@ -155,7 +175,7 @@ public class Dungeon implements Listener
         }
         Chunk currChunk = getCurrRoom();
         Location activeBlockLoc = currChunk.getBlock(15, 3, 15).getLocation();
-        Bukkit.getConsoleSender().sendMessage(CustomBlock.place(activeBlockID, activeBlockLoc) + "");
+        activeBlock = CustomBlock.place(activeBlockID, activeBlockLoc).getBlock();
     }
 
     public Location getSpawnLoc()
@@ -186,10 +206,15 @@ public class Dungeon implements Listener
         {
             return;
         }
-        if(activeBlockCustom.getPermission().equals("nrb.monster_active_block"))
+        if(activeBlockCustom.getPermission().equals("nrb.monster_active_block") && activeBlock.equals(this.activeBlock))
         {
             Random random = new Random();
-            int randomMonsterNum = random.nextInt(4, 29);
+            int maxMonsterNum = 6;
+            if(lv > 2)
+            {
+                maxMonsterNum = 3 * lv;
+            }
+            int randomMonsterNum = random.nextInt(4, maxMonsterNum + 1);
             for(int i = 0; i < randomMonsterNum; i++)
             {
                 Location randomLoc = null;
@@ -199,7 +224,9 @@ public class Dungeon implements Listener
                     int randomZ = random.nextInt(1, 30);
                     randomLoc = getCurrRoom().getBlock(0, 3, 0).getLocation();
                     randomLoc.add(randomX, 0, randomZ);
-                } while (!randomLoc.getBlock().getType().equals(Material.AIR));
+                } while (!randomLoc.getBlock().getType().equals(Material.AIR) && !randomLoc.getBlock().getType().equals(Material.LIGHT) && !randomLoc.getBlock().getType().equals(Material.WATER));
+
+                Bukkit.getConsoleSender().sendMessage(concept + "");
 
                 monsterList.addAll(MonsterSpawnManager.SpawnMonster(concept, randomLoc, lv));
             }
@@ -210,7 +237,7 @@ public class Dungeon implements Listener
             }
             CloseRoom();
         }
-        else if(activeBlockCustom.getPermission().equals("nrb.boss_active_block"))
+        else if(activeBlockCustom.getPermission().equals("nrb.boss_active_block") && activeBlock.equals(this.activeBlock))
         {
             boss = MonsterSpawnManager.SpawnBoss(concept, getCurrRoom().getBlock(15, 3, 15).getLocation(), lv);
             for(Player inPlayer : inPlayerList)
@@ -220,15 +247,31 @@ public class Dungeon implements Listener
             }
             CloseRoom();
         }
-        else if(activeBlockCustom.getPermission().equals("nrb.chest_block"))
+        else if(activeBlockCustom.getPermission().equals("nrb.chest_block") && !playerChestList.contains(player))
         {
             // 드랍 조정(부순 플레이어 인벤토리로 전송)
+            playerChestList.add(player);
             player.getInventory().addItem(CustomItemManager.randomEnchant());
+            new BukkitRunnable()
+            {
+                @Override
+                public void run()
+                {
+                    playerChestList.remove(player);
+                }
+            }.runTaskLater(NRBRPG.getServerInstance(), 10L);
         }
-        else
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event)
+    {
+        Player player = event.getPlayer();
+        if(!player.getWorld().getName().equals(WorldManager.dungeonWorld))
         {
             return;
         }
+        inPlayerList.remove(player);
     }
 
     @EventHandler
@@ -243,6 +286,18 @@ public class Dungeon implements Listener
         {
             player.teleport(originLoc);
             inPlayerList.remove(player);
+
+            new BukkitRunnable()
+            {
+                @Override
+                public void run()
+                {
+                    MythicBukkit.inst().getMobManager().getActiveMob(gate.getEntity().getBukkitEntity().getUniqueId()).orElse(gate).despawn();
+                    int currGateNum = NRBRPG.getConfigManager().getConfig("gatenum").getInt("gatenum");
+                    NRBRPG.getConfigManager().getConfig("gatenum").set("gatenum", currGateNum - 1);
+                    NRBRPG.getConfigManager().saveConfig("gatenum");
+                }
+            }.runTaskLater(NRBRPG.getServerInstance(), 40L);
         }
     }
 
@@ -273,9 +328,23 @@ public class Dungeon implements Listener
             event.getDrops().clear();
             Random random = new Random();
             // 드랍템 체크
-            if(random.nextInt(0, 100) + 1 >= 90)
+            int ricecakeRandom = random.nextInt(0, 100) + 1 + lv * 2;
+            if(ricecakeRandom >= 80)
+            {
+                event.getDrops().add(CustomItemManager.DropRiceCakeMaterial());
+            }
+            int dropRandom = random.nextInt(0, 100) + 1;
+            if(dropRandom >= 90)
             {
                 event.getDrops().add(CustomItemManager.SetDropItem(lv));
+            }
+            else if(dropRandom >= 50)
+            {
+                event.getDrops().add(CustomItemManager.SetDropItem(lv-1));
+            }
+            else
+            {
+                event.getDrops().add(CustomItemManager.SetDropItem(0));
             }
             // 상자 체크
             if(random.nextInt(0, 100) + 1 >= 99)
@@ -288,15 +357,38 @@ public class Dungeon implements Listener
     @EventHandler
     public void onCreeperBoom(ExplosionPrimeEvent event)
     {
-        Location explodeLoc = event.getEntity().getLocation();
-        new BukkitRunnable()
+        if(!event.getEntity().getWorld().getName().equals(WorldManager.dungeonWorld))
         {
-            @Override
-            public void run()
+            return;
+        }
+        if(event.getEntity() instanceof LivingEntity)
+        {
+            LivingEntity creeper = ((LivingEntity) event.getEntity());
+            if(monsterList.contains(creeper))
             {
-                monsterList.add(MonsterSpawnManager.SpawnCreeper(explodeLoc, lv));
+                monsterList.remove(creeper);
+                for (Player player : inPlayerList)
+                {
+                    Random random = new Random();
+                    int rewardPoint = random.nextInt(-50, 51) + (lv * 100);
+                    PointManager.AddPoint(player, rewardPoint);
+                }
+                if (monsterList.isEmpty())
+                {
+                    for (Player player : inPlayerList)
+                    {
+                        MessageManager.SendRoomClearTitle(player);
+                    }
+                    OpenRoom();
+                }
+                Random random = new Random();
+                // 상자 체크
+                if (random.nextInt(0, 100) + 1 >= 99)
+                {
+                    CustomBlock.place("nrb:chest_block", event.getEntity().getLocation());
+                }
             }
-        }.runTaskLater(NRBRPG.getServerInstance(), 4L);
+        }
     }
 
     @EventHandler
@@ -310,7 +402,6 @@ public class Dungeon implements Listener
             // 드랍 조정(플레이어에게 직접 투입)
             for(Player player : inPlayerList)
             {
-                MessageManager.SendDungeonClearTitle(player);
                 player.getInventory().addItem(CustomItemManager.randomEnchant());
                 Random random = new Random();
                 int rewardPoint = random.nextInt(-50, 51) + (lv * 100) * 10;
@@ -325,7 +416,7 @@ public class Dungeon implements Listener
             {
                 if(!entity.getType().equals(EntityType.PLAYER))
                 {
-                    ((LivingEntity)entity).damage(10000);
+                    ((LivingEntity)entity).damage(1000);
                 }
             }
         }
@@ -340,6 +431,18 @@ public class Dungeon implements Listener
         }
         Player player = (Player) event.getEntity();
         if(!player.getWorld().getName().equals(WorldManager.dungeonWorld))
+        {
+            return;
+        }
+        if(event.getDamageSource().getDamageType().equals(DamageType.FALL))
+        {
+            return;
+        }
+        if(event.getDamageSource().getDamageType().equals(DamageType.MAGIC))
+        {
+            return;
+        }
+        if(event.getDamageSource().getDamageType().equals(DamageType.ON_FIRE))
         {
             return;
         }

@@ -5,6 +5,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -15,6 +16,7 @@ import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
+import org.bukkit.inventory.view.AnvilView;
 import org.osj.nRBRPG.MANAGER.PointManager;
 import org.osj.nRBRPG.MANAGER.WorldManager;
 
@@ -74,6 +76,7 @@ public class InvClickEvent implements Listener
                 if(PointManager.GetPoint(player) >= cost)
                 {
                     PointManager.AddPoint(player, -cost);
+                    ((AnvilView)event.getView()).setRepairCost(0);
                     playerRepairCheckList.remove(player);
                 }
                 else
@@ -146,8 +149,29 @@ public class InvClickEvent implements Listener
         int point = PointManager.GetPoint(player);
         if(point >= price * num)
         {
-            player.getInventory().addItem(new ItemStack(currItem.getType(), num));
-            PointManager.AddPoint(player, -price * num);
+            if(currItem.getType().equals(Material.WRITTEN_BOOK))
+            {
+                ItemStack cloneBook = currItem.clone();
+                List<Component> loreList = cloneBook.lore();
+                loreList.clear();
+                cloneBook.lore(loreList);
+                player.getInventory().addItem(cloneBook);
+            }
+            else if(currItem.getType().equals(Material.COOKED_CHICKEN))
+            {
+                ItemStack cloneBook = currItem.clone();
+                List<Component> loreList = cloneBook.lore();
+                loreList.clear();
+                cloneBook.lore(loreList);
+                cloneBook.setAmount(num);
+                player.getInventory().addItem(cloneBook);
+                PointManager.AddPoint(player, -price * num);
+            }
+            else
+            {
+                player.getInventory().addItem(new ItemStack(currItem.getType(), num));
+                PointManager.AddPoint(player, -price * num);
+            }
         }
         else
         {
@@ -174,6 +198,10 @@ public class InvClickEvent implements Listener
         else
         {
             cost *= 25000;
+        }
+        if(anvilCostMap.containsKey(event.getView().getTopInventory()))
+        {
+            playerRepairCheckList.remove((Player) event.getView().getPlayer());
         }
         anvilCostMap.put(event.getView().getTopInventory(), cost);
         event.getView().setRepairCost(0);

@@ -48,6 +48,7 @@ tasks.withType(JavaCompile).configureEach {
 tasks.jar {
     archiveFileName = 'NBRRPG.jar'
     destinationDirectory = file('C:\\MyProject\\MC_NoRaBangbang_EndOfYear_RPG\\result')
+    destinationDirectory = file('C:\\MinecraftServer\\NRB_Server\\plugins')
     destinationDirectory = file('C:\\Users\\User\\Desktop\\NRB_Server\\plugins')
 }
 

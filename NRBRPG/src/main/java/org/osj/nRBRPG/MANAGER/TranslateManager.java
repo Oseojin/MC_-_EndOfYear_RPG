@@ -37,12 +37,12 @@ public class TranslateManager
         englishToKoreanMap.put("blaze", "블레이즈");
         englishToKoreanMap.put("zoglin", "조글린");
         englishToKoreanMap.put("hoglin", "호글린");
-        englishToKoreanMap.put("magma Cube", "마그마큐브");
+        englishToKoreanMap.put("magma cube", "마그마큐브");
         englishToKoreanMap.put("piglin", "피글린");
         englishToKoreanMap.put("piglin brute", "난폭한 피글린");
         englishToKoreanMap.put("wither skeleton", "위더스켈레톤");
         englishToKoreanMap.put("pillager", "약탈자");
-        englishToKoreanMap.put("ravanger", "파괴수");
+        englishToKoreanMap.put("ravager", "파괴수");
         englishToKoreanMap.put("iron golem", "철 골렘");
         englishToKoreanMap.put("zombie villager", "좀비 주민");
         englishToKoreanMap.put("illusioner", "환술사");

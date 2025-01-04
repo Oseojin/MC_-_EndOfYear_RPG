@@ -27,7 +27,7 @@ public class MessageManager
     {
         Component mainComponent = Component.text("위대한 업적").color(TextColor.color(136, 0, 9)).decorate(TextDecoration.BOLD);
         Component subComponent = Component.text("세계를 위협하는 재앙 중 하나를 제거했습니다.");
-        Component coment = Component.text("60초 뒤 귀환합니다.").color(TextColor.color(111, 0, 8));
+        Component coment = Component.text("30초 뒤 귀환합니다.").color(TextColor.color(111, 0, 8));
         player.sendMessage(coment);
         player.showTitle(Title.title(mainComponent, subComponent, Title.DEFAULT_TIMES));
     }
@@ -35,7 +35,7 @@ public class MessageManager
     {
         Component mainComponent = Component.text("던전 클리어!!").color(TextColor.color(255, 232, 0)).decorate(TextDecoration.BOLD);
         Component subComponent = Component.text("인벤토리에 보상이 지급되었습니다.");
-        Component coment = Component.text("60초 뒤 귀환합니다.").color(TextColor.color(255, 241, 0));
+        Component coment = Component.text("30초 뒤 귀환합니다.").color(TextColor.color(255, 241, 0));
         player.sendMessage(coment);
         player.showTitle(Title.title(mainComponent, subComponent, Title.DEFAULT_TIMES));
     }

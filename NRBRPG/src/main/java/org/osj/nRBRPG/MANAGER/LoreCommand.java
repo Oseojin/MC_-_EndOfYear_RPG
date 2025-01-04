@@ -39,6 +39,12 @@ public class LoreCommand implements CommandExecutor
             loreList.add(Component.text("판매가: " + strings[1] + "P").color(TextColor.color(255, 0, 7)).decorate(TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
             mainHand.lore(loreList);
         }
+        else if(strings[0].equals("r"))
+        {
+            List<Component> loreList = new ArrayList<>();
+            loreList.clear();
+            mainHand.lore(loreList);
+        }
 
         return false;
     }

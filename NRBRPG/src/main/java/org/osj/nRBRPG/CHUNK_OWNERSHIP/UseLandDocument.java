@@ -35,7 +35,7 @@ public class UseLandDocument implements Listener
                 MessageManager.SendChatContent(player, "로비 월드에서만 땅을 소유할 수 있습니다!", TextColor.color(255, 0, 0));
                 return;
             }
-            if(-3 <= player.getChunk().getX() && player.getChunk().getX() <= 3 && -3 <= player.getChunk().getZ() && player.getChunk().getZ() <= 3)
+            if(-2 <= player.getChunk().getX() && player.getChunk().getX() <= 1 && -2 <= player.getChunk().getZ() && player.getChunk().getZ() <= 1)
             {
                 MessageManager.SendChatContent(player, "로비 스폰에서 너무 가깝습니다!", TextColor.color(255, 0, 0));
                 return;

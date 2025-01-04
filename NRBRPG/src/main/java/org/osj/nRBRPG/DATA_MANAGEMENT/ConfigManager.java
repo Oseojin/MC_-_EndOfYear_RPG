@@ -18,6 +18,8 @@ public class ConfigManager
         configSet.put("chunkownership", new ConfigMaker(path, "chunkownership.yml"));
         configSet.put("point", new ConfigMaker(path, "point.yml"));
         configSet.put("coin", new ConfigMaker(path, "coin.yml"));
+        configSet.put("gatenum", new ConfigMaker(path, "gatenum.yml"));
+        configSet.put("ricecakesoup", new ConfigMaker(path, "ricecakesoup.yml"));
         loadSettings();
         saveConfigs();
     }
@@ -70,9 +72,13 @@ public class ConfigManager
         FileConfiguration chunkownershipConfig = getConfig("chunkownership");
         FileConfiguration pointConfig = getConfig("point");
         FileConfiguration coinConfig = getConfig("coin");
+        FileConfiguration gatenumConfig = getConfig("gatenum");
+        FileConfiguration ricecakesoupConfig = getConfig("ricecakesoup");
 
         chunkownershipConfig.options().copyDefaults(true);
         pointConfig.options().copyDefaults(true);
         coinConfig.options().copyDefaults(true);
+        gatenumConfig.options().copyDefaults(true);
+        ricecakesoupConfig.options().copyDefaults(true);
     }
 }

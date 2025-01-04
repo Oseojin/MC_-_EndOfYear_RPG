@@ -1,12 +1,7 @@
 package org.osj.nRBRPG;
 
-import org.bukkit.Chunk;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.checkerframework.checker.units.qual.C;
-import org.osj.nRBRPG.CHUNK_OWNERSHIP.AddLandAllow;
-import org.osj.nRBRPG.CHUNK_OWNERSHIP.ChunkManager;
-import org.osj.nRBRPG.CHUNK_OWNERSHIP.RemoveLandAllow;
-import org.osj.nRBRPG.CHUNK_OWNERSHIP.UseLandDocument;
+import org.osj.nRBRPG.CHUNK_OWNERSHIP.*;
 import org.osj.nRBRPG.DATA_MANAGEMENT.ConfigManager;
 import org.osj.nRBRPG.ITEMSADDER.CustomItemManager;
 import org.osj.nRBRPG.LOBBY.LobbyPreventEvent;
@@ -18,6 +13,7 @@ import org.osj.nRBRPG.MESSAGE.PlayerScoreboardManager;
 import org.osj.nRBRPG.PLAYERS.*;
 import org.osj.nRBRPG.RPG.*;
 import org.osj.nRBRPG.WILD.WildPreventEvent;
+import org.osj.nRBRPG.WILD.WildShopCommand;
 
 public final class NRBRPG extends JavaPlugin
 {
@@ -45,12 +41,11 @@ public final class NRBRPG extends JavaPlugin
         scoreboardManager = new PlayerScoreboardManager();
         bossDungeon = new BossDungeon();
         inventoryManager = new InventoryManager();
-        // Plugin startup logic
 
         registerEvent();
         registerCommand();
 
-        //dungeonManager.startGateGenerate();
+        dungeonManager.startGateGenerate();
     }
 
     @Override
@@ -76,14 +71,27 @@ public final class NRBRPG extends JavaPlugin
         getServer().getPluginManager().registerEvents(new BowDamage(), serverInstance);
         getServer().getPluginManager().registerEvents(new InvClickEvent(), serverInstance);
         getServer().getPluginManager().registerEvents(new PlayerShop(), serverInstance);
+        getServer().getPluginManager().registerEvents(new PreventRecipe(), serverInstance);
+        getServer().getPluginManager().registerEvents(new PlayerEat(), serverInstance);
+        getServer().getPluginManager().registerEvents(new PlayerChat(), serverInstance);
     }
     private void registerCommand()
     {
         serverInstance.getServer().getPluginCommand("forgive").setExecutor(new ForgiveCommand());
-        serverInstance.getServer().getPluginCommand("dungeongen").setExecutor(new DungeonCommand());
+        serverInstance.getServer().getPluginCommand("lobby").setExecutor(new LobbyCommand());
+        serverInstance.getServer().getPluginCommand("test").setExecutor(new TestCommand());
         serverInstance.getServer().getPluginCommand("addallow").setExecutor(new AddLandAllow());
         serverInstance.getServer().getPluginCommand("removeallow").setExecutor(new RemoveLandAllow());
         serverInstance.getServer().getPluginCommand("lore").setExecutor(new LoreCommand());
+        serverInstance.getServer().getPluginCommand("gateonoff").setExecutor(new GateGenOnOff());
+        serverInstance.getServer().getPluginCommand("tpland").setExecutor(new TeleportLandCommand());
+        serverInstance.getServer().getPluginCommand("addpoint").setExecutor(new AddPointCommand());
+        serverInstance.getServer().getPluginCommand("gatenum").setExecutor(new CurrGateNum());
+        serverInstance.getServer().getPluginCommand("shop").setExecutor(new WildShopCommand());
+        serverInstance.getServer().getPluginCommand("an").setExecutor(new AnnounceCommand());
+        serverInstance.getServer().getPluginCommand("check").setExecutor(new CheckChangeCommand());
+        serverInstance.getServer().getPluginCommand("ricecake").setExecutor(new PlayerScaleCommand());
+        serverInstance.getServer().getPluginCommand("removechunk").setExecutor(new RemoveChunkCommand());
     }
 
     public static NRBRPG getServerInstance()
@@ -101,5 +109,9 @@ public final class NRBRPG extends JavaPlugin
     public static BossDungeon getBossDungeon()
     {
         return bossDungeon;
+    }
+    public static DungeonManager getDungeonManager()
+    {
+        return dungeonManager;
     }
 }

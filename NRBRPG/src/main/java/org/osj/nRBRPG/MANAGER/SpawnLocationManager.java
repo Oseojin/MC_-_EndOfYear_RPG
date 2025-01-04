@@ -10,7 +10,7 @@ public class SpawnLocationManager
 
     public SpawnLocationManager()
     {
-        lobbySpawnLoc = new Location(Bukkit.getWorld(WorldManager.lobbyWorld), 0, -60, 0);
-        wildSpawnLoc = new Location(Bukkit.getWorld(WorldManager.wildWorlds.get(0)), -176, 73, 160);
+        lobbySpawnLoc = new Location(Bukkit.getWorld(WorldManager.lobbyWorld), 0.5, -58, -0.5);
+        wildSpawnLoc = Bukkit.getWorld(WorldManager.wildWorlds.get(0)).getSpawnLocation();
     }
 }
